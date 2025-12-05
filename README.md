@@ -6,11 +6,7 @@ It is inspired by [SolveSpace](https://solvespace.com/), but built independently
 I included a short [math summary](docs/math.md).
 
 ## Demo
-
-<video controls width="600">
-   <source src="docs/solver-demo.mp4" type="video/mp4">
-   Your browser does not support the video tag.
-</video>
+https://github.com/user-attachments/assets/eb8d087f-5ca4-4fac-9ae4-b68d3771c1d4
 
 ## Running the program
 
