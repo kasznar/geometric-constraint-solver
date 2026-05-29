@@ -128,7 +128,6 @@ func (left Matrix) MultiplyRight(right Matrix) Matrix {
 
 	for i := 0; i < left.Rows(); i++ {
 		for j := 0; j < right.Cols(); j++ {
-			// compute
 			sum := 0.0
 			for k := 0; k < left.Cols(); k++ {
 				sum += left[i][k] * right[k][j]

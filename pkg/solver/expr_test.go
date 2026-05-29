@@ -58,50 +58,75 @@ func TestExpr_Format(t *testing.T) {
 }
 
 func TestExpr_Eval(t *testing.T) {
-	parameters = map[string]float64{"X": 5, "Y": 3}
-	defer func() { parameters = map[string]float64{} }()
+	p := &SystemParameters{}
+	p.Add("X", 5)
+	p.Add("Y", 3)
 
 	assert := assert.New(t)
 
-	// CONSTANT
-	assert.Equal(3.14, Number(3.14).Eval())
+	assert.Equal(3.14, Number(3.14).Eval(p))
 
-	// PARAMETER
-	assert.Equal(5.0, Param("X").Eval())
+	assert.Equal(5.0, Param("X").Eval(p))
 
-	// ADD
 	add := Number(1).Add(Number(2))
-	assert.Equal(3.0, add.Eval())
+	assert.Equal(3.0, add.Eval(p))
 
-	// SUBTRACT
 	sub := Number(5).Subtract(Number(3))
-	assert.Equal(2.0, sub.Eval())
+	assert.Equal(2.0, sub.Eval(p))
 
-	// MULTIPLY
 	mul := Number(2).Multiply(Param("Y"))
-	assert.Equal(6.0, mul.Eval())
+	assert.Equal(6.0, mul.Eval(p))
 
-	// SQUARE
 	sq := Param("Y").Square()
-	assert.Equal(9.0, sq.Eval())
+	assert.Equal(9.0, sq.Eval(p))
 
-	// NEGATE
 	neg := Number(7).Negate()
-	assert.Equal(-7.0, neg.Eval())
+	assert.Equal(-7.0, neg.Eval(p))
 }
 
 func TestExpr_EvalSquare(t *testing.T) {
-	parameters = map[string]float64{"X": 5, "Y": 3}
-	defer func() { parameters = map[string]float64{} }()
-
+	p := &SystemParameters{}
+	p.Add("X", 5)
+	p.Add("Y", 3)
 	e := Param("X").Subtract(Param("Y")).Square()
-	assert.Equal(t, 4.0, e.Eval())
+	assert.Equal(t, 4.0, e.Eval(p))
 }
 
 func TestExpr_DerivSquare(t *testing.T) {
-	parameters = map[string]float64{"X": 5, "Y": 3}
-	defer func() { parameters = map[string]float64{} }()
-
+	p := &SystemParameters{}
+	p.Add("X", 5)
+	p.Add("Y", 3)
 	e := Param("X").Subtract(Param("Y")).Square()
-	assert.Equal(t, -4.0, e.PartialDiff("Y").Eval())
+	assert.Equal(t, -4.0, e.PartialDiff("Y").Eval(p))
+}
+
+func TestExpr_EvalDivide(t *testing.T) {
+	p := &SystemParameters{}
+	p.Add("X", 6)
+	p.Add("Y", 3)
+	e := Param("X").Divide(Param("Y"))
+	assert.Equal(t, 2.0, e.Eval(p))
+}
+
+func TestExpr_EvalSqrt(t *testing.T) {
+	p := &SystemParameters{}
+	p.Add("X", 9)
+	e := Param("X").Sqrt()
+	assert.Equal(t, 3.0, e.Eval(p))
+}
+
+func TestDerivation_Divide(t *testing.T) {
+	p := &SystemParameters{}
+	p.Add("X", 3)
+	e := Number(2).Multiply(Param("X")).Divide(Param("X").Add(Number(1)))
+	result := e.PartialDiff("X").Eval(p)
+	assert.InDelta(t, 0.125, result, 1e-9)
+}
+
+func TestDerivation_Sqrt(t *testing.T) {
+	p := &SystemParameters{}
+	p.Add("X", 3)
+	e := Param("X").Square().Add(Number(16)).Sqrt()
+	result := e.PartialDiff("X").Eval(p)
+	assert.InDelta(t, 0.6, result, 1e-9)
 }
