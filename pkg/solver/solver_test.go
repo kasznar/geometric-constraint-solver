@@ -3,7 +3,6 @@ package solver
 import (
 	. "equation-solver/pkg/math"
 	. "equation-solver/pkg/utils"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,16 +44,12 @@ func TestSolver_CreateJacobian(t *testing.T) {
 	p.add(SParam{"A", 1})
 	p.add(SParam{"B", 2})
 
-	p.save()
-
-	defer func() { parameters = map[string]float64{} }()
-
 	es := []*Expr{
 		Param("A"),
 		Param("B"),
 	}
 
-	J := createJacobian(es)
+	J := createJacobian(es, p)
 
 	expected := [][]*Expr{
 		{Number(1), Number(0)},
@@ -70,16 +65,12 @@ func TestSolver_CreateJacobian2(t *testing.T) {
 	p.add(SParam{"A", 1})
 	p.add(SParam{"B", 2})
 
-	p.save()
-
-	defer func() { parameters = map[string]float64{} }()
-
 	es := []*Expr{
 		Param("A").Square(),
 		Param("B").Square(),
 	}
 
-	J := createJacobian(es)
+	J := createJacobian(es, p)
 
 	print(J[0][0].Format())
 	print(" ")
@@ -103,16 +94,17 @@ func TestSolver_CreateJacobian2(t *testing.T) {
 }
 
 func TestSolver_EvalJacobian(t *testing.T) {
-	parameters = map[string]float64{"A": 1, "B": 2}
-	defer func() { parameters = map[string]float64{} }()
+	p := &SystemParameters{}
+	p.add(SParam{"A", 1})
+	p.add(SParam{"B", 2})
 
 	es := []*Expr{
 		Param("A"),
 		Param("B"),
 	}
 
-	J := createJacobian(es)
-	result := evalJacobian(J)
+	J := createJacobian(es, p)
+	result := evalJacobian(J, p)
 
 	expected := Matrix{
 		{1, 0},
@@ -123,8 +115,9 @@ func TestSolver_EvalJacobian(t *testing.T) {
 }
 
 func TestSolver_EvalJacobian2(t *testing.T) {
-	parameters = map[string]float64{"A": 1, "B": 2}
-	defer func() { parameters = map[string]float64{} }()
+	p := &SystemParameters{}
+	p.add(SParam{"A", 1})
+	p.add(SParam{"B", 2})
 
 	es := []*Expr{
 		Param("A").Square(),
@@ -135,7 +128,7 @@ func TestSolver_EvalJacobian2(t *testing.T) {
 		println(v.Format())
 	}
 
-	J := createJacobian(es)
+	J := createJacobian(es, p)
 
 	for _, r := range J {
 		for _, e := range r {
@@ -143,12 +136,8 @@ func TestSolver_EvalJacobian2(t *testing.T) {
 		}
 	}
 
-	result := evalJacobian(J)
+	result := evalJacobian(J, p)
 
-	/*
-		2*A*1 2*A*0
-		2*B*0 2*B*1
-	*/
 	expected := Matrix{
 		{2, 0},
 		{0, 4},
@@ -158,14 +147,15 @@ func TestSolver_EvalJacobian2(t *testing.T) {
 }
 
 func TestSolver_EvalSystem(t *testing.T) {
-	parameters = map[string]float64{"A": 1, "B": 2}
-	defer func() { parameters = map[string]float64{} }()
+	p := &SystemParameters{}
+	p.add(SParam{"A", 1})
+	p.add(SParam{"B", 2})
 
 	es := []*Expr{
 		Param("A").Square(),
 		Param("B").Square(),
 	}
-	got := evalSystem(es)
+	got := evalSystem(es, p)
 
 	expected := Vector{1, 4}
 
@@ -173,18 +163,12 @@ func TestSolver_EvalSystem(t *testing.T) {
 }
 
 func TestSolver_Params(t *testing.T) {
-	defer func() { parameters = map[string]float64{} }()
-
 	p := &SystemParameters{}
-
 	p.add(SParam{"A", 1})
-
-	assert.Equal(t, parameters["A"], 1.0)
+	assert.Equal(t, 1.0, p.Get("A"))
 }
 
 func TestSolver_ParamsGetVec(t *testing.T) {
-	defer func() { parameters = map[string]float64{} }()
-
 	p := &SystemParameters{}
 
 	p.add(SParam{"A", 1})
@@ -199,8 +183,6 @@ func TestSolver_ParamsGetVec(t *testing.T) {
 }
 
 func TestSolver_SaveVec(t *testing.T) {
-	defer func() { parameters = map[string]float64{} }()
-
 	p := &SystemParameters{}
 
 	p.add(SParam{"A", 1})
@@ -211,34 +193,12 @@ func TestSolver_SaveVec(t *testing.T) {
 
 	p.saveVec(vec)
 
-	assert.Equal(t, 4.0, parameters["A"])
-	assert.Equal(t, 5.0, parameters["B"])
-	assert.Equal(t, 6.0, parameters["C"])
-
 	assert.Equal(t, 4.0, p.list[0].value)
 	assert.Equal(t, 5.0, p.list[1].value)
 	assert.Equal(t, 6.0, p.list[2].value)
 }
 
-// this order is not guaranteed
-func TestSolver_ParamIteration(t *testing.T) {
-	parameters = map[string]float64{"A": 1, "B": 2, "C": 3}
-	defer func() { parameters = map[string]float64{} }()
-
-	var result []string
-
-	for p := range parameters {
-		result = append(result, p)
-	}
-
-	assert.Equal(t, []string{"A", "B", "C"}, result)
-}
-
 func TestSolver_SolveSystem(t *testing.T) {
-	defer func() {
-		parameters = map[string]float64{}
-	}()
-
 	p := &SystemParameters{}
 
 	p.add(SParam{"x", 1})
@@ -249,9 +209,7 @@ func TestSolver_SolveSystem(t *testing.T) {
 		Param("y").Square().Add(Param("x")).Subtract(Number(1)),
 	}
 
-	SolveSystem(sys, p)
-
-	fmt.Printf("%#v\n", parameters)
+	SolveSystem(sys, p, nil)
 
 	assert.Equal(t, AlmostEqual(p.list[0].value, 0.7244919590005157, 1e-9), true)
 	assert.Equal(t, AlmostEqual(p.list[1].value, -0.5248885986564048, 1e-9), true)
